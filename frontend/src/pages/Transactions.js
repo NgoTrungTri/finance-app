@@ -12,7 +12,7 @@ export default function Transactions() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({ type: '', category_id: '' });
+  const [filters, setFilters] = useState({ type: '', category_id: '', month: new Date().toISOString().slice(0, 7) });
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
@@ -26,7 +26,14 @@ export default function Transactions() {
   const fetchTxns = useCallback(async (p = 1) => {
     setLoading(true);
     try {
-      const res = await transactionsAPI.list({ ...filters, page: p, limit: 15 });
+      const { month, ...rest } = filters;
+      const params = { ...rest, page: p, limit: 15 };
+      if (month) {
+        const [y, m] = month.split('-').map(Number);
+        params.start_date = `${month}-01`;
+        params.end_date = `${month}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`;
+      }
+      const res = await transactionsAPI.list(params);
       setTxns(res.data);
       setTotal(res.total);
       setPage(p);
@@ -70,7 +77,8 @@ export default function Transactions() {
         <button className="btn btn-primary" onClick={openAdd}>+ Thêm mới</button>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+        <input className="form-input" type="month" style={{ width: 160 }} value={filters.month} onChange={e => setFilters(f => ({ ...f, month: e.target.value }))} />
         <select className="form-input" style={{ width: 150 }} value={filters.type} onChange={e => setFilters(f => ({ ...f, type: e.target.value }))}>
           <option value="">Tất cả loại</option>
           <option value="income">Thu nhập</option>
